@@ -30,6 +30,13 @@ public class RoutineInfoRepository {
             String section = routineObj.getString("section");
             String semester = routineObj.getString("semester");
 
+            // parse periods
+            JSONArray periodsArr = routineObj.getJSONArray("periods");
+            String[] periods = new String[periodsArr.length()];
+            for (int pi = 0; pi < periodsArr.length(); pi++) {
+                periods[pi] = periodsArr.getString(pi);
+            }
+
             // Parse the classes 2D array
             JSONArray classesArray = routineObj.getJSONArray("classes");
             Class[][] classes = new Class[classesArray.length()][];
@@ -54,7 +61,7 @@ public class RoutineInfoRepository {
             }
 
             // Construct Routine object
-            Routine routine = new Routine(program, intake, section, semester, classes);
+            Routine routine = new Routine(program, intake, section, semester, periods, classes);
             routines.add(routine);
         }
     }

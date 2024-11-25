@@ -5,6 +5,7 @@ public record Routine(
         int intake,
         String section,
         String semester,
+        String[] periods,
         Class[][] classes
 ) {
 }
