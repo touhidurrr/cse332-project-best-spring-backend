@@ -5,8 +5,9 @@ public record FacultyClass(
         String building,
         String room,
 
-        int day,
-        int period,
+        int dayIdx,
+        int periodIdx,
+        String period,
 
         String program,
         int intake,

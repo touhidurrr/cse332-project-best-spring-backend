@@ -148,6 +148,7 @@ public class RoutineInfoRepository {
         List<FacultyClass> facultyClasses = new ArrayList<>();
         routines.forEach(routine -> {
             Class[][] classes = routine.classes();
+            String[] periods = routine.periods();
             for (int day = 0; day < classes.length; day++) {
                 for (int period = 0; period < classes[day].length; period++) {
                     Class cls = classes[day][period];
@@ -162,6 +163,7 @@ public class RoutineInfoRepository {
 
                                         day,
                                         period,
+                                        periods[period],
 
                                         routine.program(),
                                         routine.intake(),
