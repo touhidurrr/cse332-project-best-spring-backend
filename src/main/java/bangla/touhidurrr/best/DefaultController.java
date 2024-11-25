@@ -1,5 +1,6 @@
 package bangla.touhidurrr.best;
 
+import bangla.touhidurrr.best.models.CourseInfo;
 import bangla.touhidurrr.best.models.FacultyInfo;
 import bangla.touhidurrr.best.models.Routine;
 import bangla.touhidurrr.best.runtime.RoutineInfoRepository;
@@ -46,5 +47,15 @@ public class DefaultController {
                 routineInfoRepository.getFacultyName(facultyCode),
                 routineInfoRepository.getFacultyClasses(facultyCode)
         );
+    }
+
+    @GetMapping("/courseCodes")
+    List<String> getCourseCodes() {
+        return routineInfoRepository.getCourseCodes();
+    }
+
+    @GetMapping("/courses/{courseCode}")
+    CourseInfo getCourseInfo(@PathVariable String courseCode) {
+        return routineInfoRepository.getCourseInfo(courseCode);
     }
 }

@@ -1,8 +1,7 @@
 package bangla.touhidurrr.best.runtime;
 
 import bangla.touhidurrr.best.models.Class;
-import bangla.touhidurrr.best.models.FacultyClass;
-import bangla.touhidurrr.best.models.Routine;
+import bangla.touhidurrr.best.models.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.json.JSONArray;
@@ -12,10 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 @Repository
 public class RoutineInfoRepository {
@@ -87,6 +83,33 @@ public class RoutineInfoRepository {
 
     public String getCourseName(String courseCode) {
         return courseCodeToTitleMap.get(courseCode);
+    }
+
+    public List<String> getCourseCodes() {
+        return new ArrayList<>(courseCodeToTitleMap.keySet());
+    }
+
+    public CourseInfo getCourseInfo(String courseCode) {
+        Set<String> facultyCodes = new HashSet<>();
+        routines.forEach(routine -> {
+            Class[][] classes = routine.classes();
+            for (Class[] aClass : classes) {
+                for (Class cls : aClass) {
+                    if (cls != null && cls.courseCode().equals(courseCode)) {
+                        facultyCodes.add(cls.facultyCode());
+                    }
+                }
+            }
+        });
+
+        return new CourseInfo(
+                courseCode,
+                getCourseName(courseCode),
+                facultyCodes.stream().map(code -> new CourseFaculty(
+                        code,
+                        getFacultyName(code)
+                )).toList()
+        );
     }
 
     public String getFacultyName(String facultyCode) {
@@ -164,10 +187,6 @@ public class RoutineInfoRepository {
 
             populateRoutines(routines);
             populatePrograms(programs);
-
-            System.out.println(getProgramNames());
-            System.out.println(getIntakes("B.Sc. Engg. in CSE"));
-            System.out.println(getSections("B.Sc. Engg. in CSE", 50));
         } catch (Exception e) {
             e.printStackTrace();
         }
