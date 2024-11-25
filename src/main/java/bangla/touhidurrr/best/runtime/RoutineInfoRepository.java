@@ -1,6 +1,7 @@
 package bangla.touhidurrr.best.runtime;
 
 import bangla.touhidurrr.best.models.Class;
+import bangla.touhidurrr.best.models.FacultyClass;
 import bangla.touhidurrr.best.models.Routine;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -19,10 +20,10 @@ import java.util.List;
 @Repository
 public class RoutineInfoRepository {
     private final String dataSourceURL = "https://bubt-routine-data.pages.dev/routines.json";
-    private HashMap<String, String> courseCodeToTitleMap;
-    private HashMap<String, String> facultyIdToNameMap;
     private final List<Routine> routines = new ArrayList<>();
     private final HashMap<String, HashMap<Integer, List<String>>> programs = new HashMap<>();
+    private HashMap<String, String> courseCodeToTitleMap;
+    private HashMap<String, String> facultyIdToNameMap;
 
     private void populateRoutines(JSONArray routinesArray) {
         for (int i = 0; i < routinesArray.length(); i++) {
@@ -92,6 +93,10 @@ public class RoutineInfoRepository {
         return facultyIdToNameMap.get(facultyCode);
     }
 
+    public List<String> getFacultyCodes() {
+        return new ArrayList<>(facultyIdToNameMap.keySet());
+    }
+
     public List<String> getProgramNames() {
         return new ArrayList<>(programs.keySet());
     }
@@ -106,6 +111,38 @@ public class RoutineInfoRepository {
 
     public List<Routine> getRoutines() {
         return routines;
+    }
+
+
+    public List<FacultyClass> getFacultyClasses(String facultyCode) {
+        List<FacultyClass> facultyClasses = new ArrayList<>();
+        routines.forEach(routine -> {
+            Class[][] classes = routine.classes();
+            for (int day = 0; day < classes.length; day++) {
+                for (int period = 0; period < classes[day].length; period++) {
+                    Class cls = classes[day][period];
+                    if (cls == null) continue;
+
+                    if (cls.facultyCode().equals(facultyCode)) {
+                        facultyClasses.add(
+                                new FacultyClass(
+                                        cls.courseCode(),
+                                        cls.building(),
+                                        cls.room(),
+
+                                        day,
+                                        period,
+
+                                        routine.program(),
+                                        routine.intake(),
+                                        routine.section()
+                                )
+                        );
+                    }
+                }
+            }
+        });
+        return facultyClasses;
     }
 
     @PostConstruct
