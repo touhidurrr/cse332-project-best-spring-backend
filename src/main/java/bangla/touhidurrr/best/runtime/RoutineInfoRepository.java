@@ -11,7 +11,10 @@ import org.springframework.stereotype.Repository;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 
 @Repository
 public class RoutineInfoRepository {
@@ -59,7 +62,11 @@ public class RoutineInfoRepository {
                         String building = classObj.getString("building");
                         String room = classObj.getString("room");
 
-                        classes[dIdx][pIdx] = new Class(courseCode, facultyCode, building, room);
+                        classes[dIdx][pIdx] = new Class(
+                                getCourse(courseCode),
+                                getFaculty(facultyCode),
+                                building, room
+                        );
 
                         // add to buildingRoomClassesMap
                         if (!buildingRoomRoutineClassesMap.containsKey(building)) {
@@ -160,23 +167,28 @@ public class RoutineInfoRepository {
         return new ArrayList<>(courseCodeToTitleMap.keySet());
     }
 
+    public Course getCourse(String courseCode) {
+        return new Course(courseCode, getCourseName(courseCode));
+    }
+
+    public Faculty getFaculty(String facultyCode) {
+        return new Faculty(facultyCode, getFacultyName(facultyCode));
+    }
+
     public CourseInfo getCourseInfo(String courseCode) {
-        Set<String> facultyCodes = new HashSet<>();
+        List<Faculty> faculties = new ArrayList<>();
         routines.forEach(routine -> {
             Class[][] classes = routine.classes();
             for (Class[] aClass : classes) {
                 for (Class cls : aClass) {
-                    if (cls != null && cls.courseCode().equals(courseCode)) {
-                        facultyCodes.add(cls.facultyCode());
+                    if (cls != null && cls.course().code().equals(courseCode)) {
+                        faculties.add(cls.faculty());
                     }
                 }
             }
         });
 
-        return new CourseInfo(
-                courseCode, getCourseName(courseCode),
-                facultyCodes.stream().map(code -> new CourseFaculty(code, getFacultyName(code))).toList()
-        );
+        return new CourseInfo(getCourse(courseCode), faculties);
     }
 
     public String getFacultyName(String facultyCode) {
@@ -214,10 +226,10 @@ public class RoutineInfoRepository {
                     Class cls = classes[day][period];
                     if (cls == null) continue;
 
-                    if (cls.facultyCode().equals(facultyCode)) {
+                    if (cls.faculty().code().equals(facultyCode)) {
                         facultyClasses.add(
                                 new FacultyClass(
-                                        cls.courseCode(), cls.building(), cls.room(),
+                                        cls.course(), cls.building(), cls.room(),
                                         day, period, periods[period],
                                         routine.program(), routine.intake(), routine.section()
                                 )

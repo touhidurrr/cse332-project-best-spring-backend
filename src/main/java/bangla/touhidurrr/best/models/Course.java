@@ -1,6 +1,6 @@
 package bangla.touhidurrr.best.models;
 
-public record CourseFaculty(
+public record Course(
         String code,
         String name
 ) {

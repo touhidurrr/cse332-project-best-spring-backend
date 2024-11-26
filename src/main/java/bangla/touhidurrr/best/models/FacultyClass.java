@@ -1,7 +1,8 @@
 package bangla.touhidurrr.best.models;
 
 public record FacultyClass(
-        String courseCode,
+        Course course,
+
         String building,
         String room,
 

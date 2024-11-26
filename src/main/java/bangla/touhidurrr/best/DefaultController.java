@@ -20,6 +20,11 @@ public class DefaultController {
         this.routineInfoRepository = routineInfoRepository;
     }
 
+    @GetMapping("/")
+    public String index() {
+        return "Hello, visitors!\nI am the backend!\nBye~!!";
+    }
+
     @GetMapping("/test")
     String test() {
         return "test message";
@@ -43,8 +48,7 @@ public class DefaultController {
     @GetMapping("/faculty/{facultyCode}")
     FacultyInfo getFacultyInfo(@PathVariable String facultyCode) {
         return new FacultyInfo(
-                facultyCode,
-                routineInfoRepository.getFacultyName(facultyCode),
+                routineInfoRepository.getFaculty(facultyCode),
                 routineInfoRepository.getFacultyClasses(facultyCode)
         );
     }
