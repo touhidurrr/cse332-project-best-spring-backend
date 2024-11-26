@@ -176,19 +176,24 @@ public class RoutineInfoRepository {
     }
 
     public CourseInfo getCourseInfo(String courseCode) {
-        List<Faculty> faculties = new ArrayList<>();
+        HashMap<String, Integer> facultyCodeToCount = new HashMap<>();
         routines.forEach(routine -> {
             Class[][] classes = routine.classes();
             for (Class[] aClass : classes) {
                 for (Class cls : aClass) {
                     if (cls != null && cls.course().code().equals(courseCode)) {
-                        faculties.add(cls.faculty());
+                        facultyCodeToCount.merge(cls.faculty().code(), 1, Integer::sum);
                     }
                 }
             }
         });
 
-        return new CourseInfo(getCourse(courseCode), faculties);
+        return new CourseInfo(
+                getCourse(courseCode),
+                facultyCodeToCount.entrySet().stream().map(
+                        entry -> new CourseFaculty(getFaculty(entry.getKey()), entry.getValue())
+                ).toList()
+        );
     }
 
     public String getFacultyName(String facultyCode) {

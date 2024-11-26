@@ -4,6 +4,6 @@ import java.util.List;
 
 public record CourseInfo(
         Course course,
-        List<Faculty> faculties
+        List<CourseFaculty> courseFaculties
 ) {
 }
