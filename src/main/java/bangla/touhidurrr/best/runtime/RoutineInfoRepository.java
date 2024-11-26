@@ -16,12 +16,16 @@ import java.util.*;
 @Repository
 public class RoutineInfoRepository {
     private final String dataSourceURL = "https://bubt-routine-data.pages.dev/routines.json";
-    private final List<Routine> routines = new ArrayList<>();
-    private final HashMap<String, HashMap<Integer, List<String>>> programs = new HashMap<>();
+    private List<Routine> routines;
+    private HashMap<String, HashMap<Integer, List<String>>> programs;
     private HashMap<String, String> courseCodeToTitleMap;
     private HashMap<String, String> facultyIdToNameMap;
+    private HashMap<String, HashMap<String, List<RoutineClass>>> buildingRoomRoutineClassesMap;
 
     private void populateRoutines(JSONArray routinesArray) {
+        routines = new ArrayList<>();
+        buildingRoomRoutineClassesMap = new HashMap<>();
+
         for (int i = 0; i < routinesArray.length(); i++) {
             JSONObject routineObj = routinesArray.getJSONObject(i);
 
@@ -41,32 +45,45 @@ public class RoutineInfoRepository {
             JSONArray classesArray = routineObj.getJSONArray("classes");
             Class[][] classes = new Class[classesArray.length()][];
 
-            for (int j = 0; j < classesArray.length(); j++) {
-                JSONArray classRowArray = classesArray.getJSONArray(j);
-                classes[j] = new Class[classRowArray.length()];
+            for (int dIdx = 0; dIdx < classesArray.length(); dIdx++) {
+                JSONArray classRowArray = classesArray.getJSONArray(dIdx);
+                classes[dIdx] = new Class[classRowArray.length()];
 
-                for (int k = 0; k < classRowArray.length(); k++) {
-                    if (classRowArray.isNull(k)) {
-                        classes[j][k] = null; // Handle null class
+                for (int pIdx = 0; pIdx < classRowArray.length(); pIdx++) {
+                    if (classRowArray.isNull(pIdx)) {
+                        classes[dIdx][pIdx] = null; // Handle null class
                     } else {
-                        JSONObject classObj = classRowArray.getJSONObject(k);
+                        JSONObject classObj = classRowArray.getJSONObject(pIdx);
                         String courseCode = classObj.getString("courseCode");
                         String facultyCode = classObj.getString("facultyCode");
                         String building = classObj.getString("building");
                         String room = classObj.getString("room");
 
-                        classes[j][k] = new Class(courseCode, facultyCode, building, room);
+                        classes[dIdx][pIdx] = new Class(courseCode, facultyCode, building, room);
+
+                        // add to buildingRoomClassesMap
+                        if (!buildingRoomRoutineClassesMap.containsKey(building)) {
+                            buildingRoomRoutineClassesMap.put(building, new HashMap<>());
+                        } else {
+                            if (!buildingRoomRoutineClassesMap.get(building).containsKey(room)) {
+                                buildingRoomRoutineClassesMap.get(building).put(room, new ArrayList<>());
+                            } else {
+                                buildingRoomRoutineClassesMap.get(building).get(room).add(
+                                        new RoutineClass(dIdx, pIdx, classes[dIdx][pIdx])
+                                );
+                            }
+                        }
                     }
                 }
             }
 
-            // Construct Routine object
-            Routine routine = new Routine(program, intake, section, semester, periods, classes);
-            routines.add(routine);
+            routines.add(new Routine(program, intake, section, semester, periods, classes));
         }
     }
 
     private void populatePrograms(JSONObject programsObj) {
+        programs = new HashMap<>();
+
         for (Iterator<String> it = programsObj.keys(); it.hasNext(); ) {
             String programName = it.next();
             JSONObject curProgramObj = programsObj.getJSONObject(programName);
@@ -86,6 +103,53 @@ public class RoutineInfoRepository {
 
             programs.put(programName, program);
         }
+    }
+
+    public List<String> getBuildings() {
+        return new ArrayList<>(buildingRoomRoutineClassesMap.keySet());
+    }
+
+    public List<String> getRooms(String building) {
+        return new ArrayList<>(buildingRoomRoutineClassesMap.get(building).keySet());
+    }
+
+    public HashMap<String, List<String>> getBuildingRoomsMap() {
+        HashMap<String, List<String>> buildingRoomsMap = new HashMap<>();
+
+        for (String building : buildingRoomRoutineClassesMap.keySet()) {
+            buildingRoomsMap.put(
+                    building,
+                    new ArrayList<>(buildingRoomRoutineClassesMap.get(building).keySet())
+            );
+        }
+
+        return buildingRoomsMap;
+    }
+
+    public List<RoutineClass> getClasses() {
+        List<RoutineClass> rClasses = new ArrayList<>();
+
+        for (HashMap<String, List<RoutineClass>> roomClassesMap : buildingRoomRoutineClassesMap.values()) {
+            for (List<RoutineClass> roomClasses : roomClassesMap.values()) {
+                rClasses.addAll(roomClasses);
+            }
+        }
+
+        return rClasses;
+    }
+
+    public List<RoutineClass> getClassesInABuilding(String building) {
+        List<RoutineClass> classes = new ArrayList<>();
+
+        for (List<RoutineClass> classesInRooms : buildingRoomRoutineClassesMap.get(building).values()) {
+            classes.addAll(classesInRooms);
+        }
+
+        return classes;
+    }
+
+    public List<RoutineClass> getClassesInABuildingAndRoom(String building, String room) {
+        return buildingRoomRoutineClassesMap.get(building).get(room);
     }
 
     public String getCourseName(String courseCode) {
@@ -110,12 +174,8 @@ public class RoutineInfoRepository {
         });
 
         return new CourseInfo(
-                courseCode,
-                getCourseName(courseCode),
-                facultyCodes.stream().map(code -> new CourseFaculty(
-                        code,
-                        getFacultyName(code)
-                )).toList()
+                courseCode, getCourseName(courseCode),
+                facultyCodes.stream().map(code -> new CourseFaculty(code, getFacultyName(code))).toList()
         );
     }
 
@@ -157,17 +217,9 @@ public class RoutineInfoRepository {
                     if (cls.facultyCode().equals(facultyCode)) {
                         facultyClasses.add(
                                 new FacultyClass(
-                                        cls.courseCode(),
-                                        cls.building(),
-                                        cls.room(),
-
-                                        day,
-                                        period,
-                                        periods[period],
-
-                                        routine.program(),
-                                        routine.intake(),
-                                        routine.section()
+                                        cls.courseCode(), cls.building(), cls.room(),
+                                        day, period, periods[period],
+                                        routine.program(), routine.intake(), routine.section()
                                 )
                         );
                     }
@@ -177,8 +229,7 @@ public class RoutineInfoRepository {
         return facultyClasses;
     }
 
-    @PostConstruct
-    private void init() {
+    private void reloadData() {
         try {
             // Fetch the JSON content from the URL
             InputStream inputStream = new URI(dataSourceURL).toURL().openStream();
@@ -199,5 +250,10 @@ public class RoutineInfoRepository {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @PostConstruct
+    private void init() {
+        reloadData();
     }
 }
